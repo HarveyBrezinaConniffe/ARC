@@ -44,6 +44,31 @@ def load(name, training):
         else:
             Xv.append(np.array(ctask))
 
+def testAccuracy(model, N, loops, training):
+    if training:
+        X = Xt
+        Y = Yt
+    else:
+        X = Xv
+        Y = Yv
+    right = 0
+    wrong = 0
+    for _ in range(loops):
+        basecategory = random.randint(0, X.shape[0]-1)
+        baseTask = X[basecategory][0].reshape(60, 30, 1)
+        baseProb = model.predict([np.array([baseTask]), np.array([X[basecategory][random.randint(1, X[basecategory].shape[0]-1)].reshape(60, 30, 1)])])[0][0]
+        for i in range(0, N):
+            ccategory = (basecategory+random.randint(1, X.shape[0]))%X.shape[0]
+            cindex = random.randint(0, X[ccategory].shape[0]-1)
+            ctask = X[ccategory][cindex] 
+            cProb = model.predict([np.array([baseTask]), np.array([ctask.reshape(60, 30, 1)])])
+            if cProb[0][0] > baseProb:
+                wrong += 1
+                break
+        else:
+            right += 1
+    return (100*right)/loops
+
 def getBatch(batchsize, training):
     if training:
         X = Xt
@@ -83,7 +108,7 @@ def generate(batchsize, training):
         pairs, targets = getBatch(batchsize, training)
         yield (pairs, targets)
 
-# This function is almost directly copied from the example in this tutorial: https://towardsdatascience.com/one-shot-learning-with-siamese-networks-using-keras-17f34e75bb3d
+# This function is based off the example in this tutorial: https://towardsdatascience.com/one-shot-learning-with-siamese-networks-using-keras-17f34e75bb3d
 def get_siamese_model(input_shape):
     left_input = Input(input_shape)
     right_input = Input(input_shape)
@@ -111,4 +136,21 @@ def get_siamese_model(input_shape):
 model = get_siamese_model((60, 30, 1))
 optimizer = Adam(lr = 0.00006)
 model.compile(loss="binary_crossentropy", optimizer=optimizer)
-model.fit_generator(generate(1, True), epochs=2000, steps_per_epoch=5000)
+print(testAccuracy(model, 10, 18, False))
+for i in range(1):
+    model.fit_generator(generate(128, True), epochs=1, steps_per_epoch=100)
+    print(testAccuracy(model, 20, 18, False))
+
+#sampletask = [np.array([AI.Xt[0][0].reshape(60,30,1)]), np.array([AI.Xt[1][1].reshape(60,30,1)])]
+loss_object = tf.keras.losses.BinaryCrossentropy()
+def generateTask(taskin):
+    taskin[0] = taskin[0].astype(np.float32)
+    taskin[1] = taskin[1].astype(np.float32)
+    with tf.GradientTape() as tape:
+        watched = tf.convert_to_tensor(sampletask[1], np.float32)
+        tape.watch(watched)
+        prediction = model(taskin)
+        loss = loss_object(tf.convert_to_tensor(np.array([1]).reshape(1, 1)), prediction)
+    gradient = tape.gradient(loss, watched)
+    signs = tf.sign(gradient)
+    print(signs.shape)
