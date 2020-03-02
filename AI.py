@@ -14,6 +14,8 @@ import numpy as np
 import random
 import os
 
+tf.enable_eager_execution()
+
 # One shot learning - Each network takes input and output and tries to compare if two tasks are the same.
 Xt = []
 Yt = []
@@ -143,14 +145,16 @@ for i in range(1):
 
 #sampletask = [np.array([AI.Xt[0][0].reshape(60,30,1)]), np.array([AI.Xt[1][1].reshape(60,30,1)])]
 loss_object = tf.keras.losses.BinaryCrossentropy()
-def generateTask(taskin):
-    taskin[0] = taskin[0].astype(np.float32)
-    taskin[1] = taskin[1].astype(np.float32)
+def getGradients(taskin):
+    taskin[0] = tf.convert_to_tensor(taskin[0].astype(np.float32))
+    taskin[1] = tf.convert_to_tensor(taskin[1].astype(np.float32))
     with tf.GradientTape() as tape:
-        watched = tf.convert_to_tensor(sampletask[1], np.float32)
-        tape.watch(watched)
+        tape.watch(taskin)
         prediction = model(taskin)
         loss = loss_object(tf.convert_to_tensor(np.array([1]).reshape(1, 1)), prediction)
-    gradient = tape.gradient(loss, watched)
+    gradient = tape.gradient(loss, taskin)
     signs = tf.sign(gradient)
-    print(signs.shape)
+    return signs.numpy()[1][0][30:]
+
+def generate(example, cin):
+    sampletask = [np.array([example.reshape(60,30,1)]), np.array([cin.reshape(60,30,1)])]
