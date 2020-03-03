@@ -15,6 +15,7 @@ import random
 import os
 
 tf.enable_eager_execution()
+#tf.compat.v1.set_random_seed(18)
 
 # One shot learning - Each network takes input and output and tries to compare if two tasks are the same.
 Xt = []
@@ -153,8 +154,20 @@ def getGradients(taskin):
         prediction = model(taskin)
         loss = loss_object(tf.convert_to_tensor(np.array([1]).reshape(1, 1)), prediction)
     gradient = tape.gradient(loss, taskin)
-    signs = tf.sign(gradient)
-    return signs.numpy()[1][0][30:]
+    #signs = tf.sign(gradient)
+    return [gradient[1].numpy()[0][30:], loss]
 
-def generate(example, cin):
-    sampletask = [np.array([example.reshape(60,30,1)]), np.array([cin.reshape(60,30,1)])]
+def generate(example, cin, l, epochs):
+    example = example.astype(np.float64)
+    cin = cin.astype(np.float64)
+    for i in range(epochs):
+        sampletask = [np.array([example.reshape(60,30,1)]), np.array([cin.reshape(60,30,1)])] 
+        result = getGradients(sampletask)
+        grads = result[0]
+        grads *= l
+        adjustment = np.zeros((60,30,1))
+        adjustment[30:, :, :] = grads
+        cin -= adjustment.reshape((60, 30))
+        np.clip(cin, -1, 9, out=cin)
+        print("EPOCH "+str(i)+": "+str(result[1].numpy()))
+    return cin.reshape(60, 30)[30:, :]
