@@ -20,5 +20,10 @@ There are a number of steps, The first one involves learning to identify types o
 3. This network outputs a high dimensional vector.
 4. This network is trained on all available examples of all tasks, It's objective is to output similar vectors for examples of the same task.
 5. After some training, By comparing the output vectors produced from any two input examples we can tell if they are of the same task or not.
+![Diagram 1](https://github.com/HarveyBrezinaConniffe/ARC/blob/master/images/diag1.png)
 
-After training this detector to be able to distinguish between different tasks, I then ran something similar to an [adversarial attack](https://openai.com/blog/adversarial-example-research/) on it. First, I ran it on all available.
+After training this detector is able to distinguish between different tasks, I then ran something similar to an [adversarial attack](https://openai.com/blog/adversarial-example-research/) on it:
+1. A task is chosen to solve.
+2. The detector is ran on all available input-output example pairs given.
+3. The resulting vectors are averaged.
+4. A new input-output pair is constructed. The input is the test input given to me, The output is randomly initialized.
